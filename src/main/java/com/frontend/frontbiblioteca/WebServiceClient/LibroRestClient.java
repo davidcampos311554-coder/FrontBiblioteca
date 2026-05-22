@@ -1,10 +1,10 @@
 package com.frontend.frontbiblioteca.WebServiceClient;
 
 import com.frontend.frontbiblioteca.Model.Libro;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -13,13 +13,12 @@ import org.springframework.web.client.RestTemplate;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class LibroRestClient {
-    @Autowired
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
 
     //La url debe ser la misma que uso en mi backend
-    @Value("${api.libro.base-url:http://localhost:8080/api/libros}")
-    private String baseUrl;
+    private final String baseUrl = "http://localhost:8080/api/libros";
 
     public List<Libro> listarLibros() {
         //ForObject devuelve el objeto deserializado, nada más
@@ -36,6 +35,9 @@ public class LibroRestClient {
         catch (HttpStatusCodeException ex) {
             return ResponseEntity.notFound().build();
         }
+        catch (Exception e){
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+        }
     }
 
     public ResponseEntity<Libro> crearNuevoLibro(Libro libro) {
@@ -44,6 +46,10 @@ public class LibroRestClient {
         }
         catch(HttpStatusCodeException e){
             return ResponseEntity.status(e.getStatusCode()).build();
+        }
+        //Añadimos excepciones extras (backend apagado o no hay internet)
+        catch (Exception e){
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
         }
     }
 
@@ -59,6 +65,9 @@ public class LibroRestClient {
         catch (HttpStatusCodeException e){
             return ResponseEntity.status(e.getStatusCode()).build();
         }
+        catch (Exception e){
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+        }
     }
 
     public ResponseEntity<Libro> eliminarLibro(String isbn) {
@@ -68,6 +77,9 @@ public class LibroRestClient {
         }
         catch (HttpStatusCodeException e){
             return  ResponseEntity.status(e.getStatusCode()).build();
+        }
+        catch (Exception e){
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
         }
     }
 }
