@@ -1,0 +1,14 @@
+body {
+    background-color: #f3f4f6; /* Un gris claro elegante */
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+.container {
+    max-width: 900px; /* Centra y limita el ancho de la pantalla */
+}
+
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); /* Sombra suave */
+}
