@@ -23,7 +23,7 @@
             <input type="text" th:value="${detalleLibro.titulo}" class="form-control bg-light" readonly>
         </div>
 
-        <!-- Acciones en bloque usando el d-grid gap-2 idéntico al de tus compañeros -->
+
         <div class="d-grid gap-2">
             <a th:href="@{/biblioteca/actualizarLibro/{id}(id=${detalleLibro.isbn})}" class="btn btn-warning fw-bold text-dark">
                 ✏️ Modificar Datos
