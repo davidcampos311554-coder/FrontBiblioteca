@@ -6,6 +6,6 @@ import lombok.Data;
 public class Libro {
     String isbn;
     String titulo;
-    int numPag;
+    Integer numPag;
     Editorial editorial;
 }

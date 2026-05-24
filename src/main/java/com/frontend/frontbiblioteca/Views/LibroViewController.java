@@ -1,145 +1,189 @@
 package com.frontend.frontbiblioteca.Views;
 
+import com.frontend.frontbiblioteca.Model.Ejemplar;
+import com.frontend.frontbiblioteca.Model.Escrito;
 import com.frontend.frontbiblioteca.Model.Libro;
+import com.frontend.frontbiblioteca.Util.EscritoUtil;
+import com.frontend.frontbiblioteca.WebServiceClient.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.*;
 
-import com.frontend.frontbiblioteca.WebServiceClient.LibroRestClient;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import lombok.*;
 
 @Controller
-@RequiredArgsConstructor //Evitar poner el constructor de libroRestClient
+@RequiredArgsConstructor
 public class LibroViewController {
+
     private final LibroRestClient libroRestClient;
+    private final EditorialFeignClient editorialFeignClient;
+    private final AutorFeignClient autorFeignClient;
+    private final EjemplarFeingClient ejemplarFeingClient;
+    private final EscritoFeignClient escritoFeignClient;
 
+    //PANTALLA UNICA. Lista los libros y prepara los ejemplares
     @GetMapping("/biblioteca/listar-libros")
-    public String getLibros(Model model) { //Los ViewController SIEMPRE retornan un String
-        model.addAttribute("listaTodosLibros", libroRestClient.listarLibros());
-        return "libro/listar-libros"; //El String que retorna busca en templates /libro/listar-libros.html
-    }
+    public String getLibros(Model model) {
+        try {
+            model.addAttribute("listaTodosLibros", libroRestClient.listarLibros());
 
-    //Buscar libro especifico
-    @GetMapping("/biblioteca/detalleLibro/{isbn}")
-    public String buscarLibro(Model model,@PathVariable String isbn) {
-        try{
-             ResponseEntity<Libro> response = libroRestClient.buscarLibroPorIsbn(isbn);
-
-             if (response.getStatusCode().is2xxSuccessful()) {
-                 model.addAttribute("detalleLibro", response.getBody());
-                 return "libro/detalle-libro";
-             }
-
-             if (response.getStatusCode() == HttpStatus.SERVICE_UNAVAILABLE) {
-                 model.addAttribute("errorMensaje", "El servidor de DB esta fuera de servicio. Intente más tarde.");
-             }
-             else {
-                 model.addAttribute("errorMensaje", "No se encuentra el libro");
-             }
-        }
-        catch (Exception e){
-            model.addAttribute("errorMensaje", "El servidor no está disponible en este momento");
+            //Informacion
+            model.addAttribute("listaEditoriales", editorialFeignClient.obtenerEditoriales());
+            model.addAttribute("listaAutores", autorFeignClient.obtenerAutores());
+            model.addAttribute("listaEjemplares", ejemplarFeingClient.obtenerEjemplares());
+            model.addAttribute("listaEscrito", escritoFeignClient.obtenerEscrito());
+        } catch (Exception e) {
+            model.addAttribute("errorMensaje", "Hubo un problema al conectar con los servicios backend.");
         }
 
-        return "libro/detalle-libro-error";
+        if (!model.containsAttribute("libroNuevo")) {
+            model.addAttribute("libroNuevo", new Libro());
+        }
+        return "libro/listar-libros";
     }
 
-    //Antes de registrar, creamos un modelo vacío que el usuario llena
-    @GetMapping("/biblioteca/registrarLibro")
-    public String registrarLibro(Model model) {
-        model.addAttribute("libroNuevo", new Libro());
-        return "libro/registrar-libro";
+    @GetMapping("/biblioteca/api/libro-detalle/{isbn}")
+    @ResponseBody // Esto es clave para que devuelva JSON directamente a JavaScript
+    public Map<String, Object> obtenerDetalleLibroJson(@PathVariable String isbn) {
+        try {
+            // Usamos el estándar de Feign para traer los ejemplares
+            List<Ejemplar> todosEjemplares = ejemplarFeingClient.obtenerEjemplares();
+
+            // Filtramos en el servidor los que corresponden al libro seleccionado
+            List<Ejemplar> ejemplaresFiltrados = todosEjemplares.stream()
+                    .filter(e -> e.getLibro() != null && isbn.equals(e.getLibro().getIsbn()))
+                    .toList();
+
+            //Traemos los escritos para unir con el autor
+            List<Escrito> todosEscritos = escritoFeignClient.obtenerEscrito();
+
+            String nombresAutores = todosEscritos.stream()
+                    .filter(e -> e.getLibro() != null && isbn.equals(e.getLibro().getIsbn()))
+                    .map(e ->
+                            {String idAutor = e.getAutor().getIdAutor();
+                            return autorFeignClient.obtenerAutorPorId(idAutor);
+                            })
+                    .map(autor -> autor.getNombre()+" "+autor.getApellido())
+                    .distinct()
+                    .collect(Collectors.joining(", "));
+
+            // Devuelve el mapa con la estructura limpia que espera el fetch de JavaScript
+            return Map.of(
+                    "ejemplares", ejemplaresFiltrados,
+                    "autores", nombresAutores
+            );
+        } catch (Exception e) {
+            // En caso de caída, devolvemos listas vacías estructuradas para que el JS no rompa la interfaz
+            return Map.of(
+                    "ejemplares", List.of(),
+                    "autores", "No se pudieron cargar los autores"
+            );
+        }
     }
 
     @PostMapping("/biblioteca/registrarLibro")
-    public String guardarLibro(@ModelAttribute("libroNuevo") Libro libroNuevo, Model model) {
+    public String guardarLibro(@ModelAttribute("libroNuevo") Libro libroNuevo, Model model, @RequestParam("idAutor") String idAutor) {
         try {
             ResponseEntity<Libro> response = libroRestClient.crearNuevoLibro(libroNuevo);
 
-            // 1. Registro exitoso (Código 200 / 201)
             if (response.getStatusCode().is2xxSuccessful()) {
+                List<Escrito> todosLosEscritos =  escritoFeignClient.obtenerEscrito();
+                Escrito escritoNuevo = EscritoUtil.generarEscritoConIdNuevo(todosLosEscritos,response.getBody() ,idAutor);
+                escritoFeignClient.agregarEscrito(escritoNuevo);
                 return "redirect:/biblioteca/listar-libros";
             }
 
-            // Responde código de error (404 o 500)
             if (response.getStatusCode() == HttpStatus.SERVICE_UNAVAILABLE) {
-                model.addAttribute("errorMensaje", "El servidor de base de datos está fuera de servicio. Intenta más tarde.");
+                model.addAttribute("errorMensaje", "El servidor de base de datos está fuera de servicio.");
             } else {
                 model.addAttribute("errorMensaje", "No se pudo registrar el libro. Verifica los datos.");
             }
 
         } catch (Exception e) {
-            //Fallo total de comunicación
-            model.addAttribute("errorMensaje", "El servicio no está disponible en este momento. Intenta más tarde.");
+            model.addAttribute("errorMensaje", "El servicio de backend no está disponible en este momento.");
         }
 
-        // Si falló por cualquier razón, volvemos a mostrar el formulario con el mensaje correspondiente
-        return "libro/registrar-libro";
-    }
+        // --- ASEGURAMOS QUE TODAS LAS LISTAS VUELVAN AL HTML ---
+        try {
+            model.addAttribute("listaTodosLibros", libroRestClient.listarLibros());
+        } catch (Exception ignored) {}
 
-    //Los formularios HTML5 nativos no soportanan PUT ni DELETE, así que lo haremos con POST
-    @GetMapping("/biblioteca/actualizarLibro/{isbn}")
-    public String actualizarLibro(Model model, @PathVariable String isbn) {
-        //Reutilizamos la lógica de buscarLibro
-        String vistaResultado = buscarLibro(model, isbn);
-        if ("libro/detalle-libro".equals(vistaResultado)) {
-            //Almacenamos en varible el libro de 'buscarLibro'
-            Libro libroEncontrado = (Libro) model.getAttribute("detalleLibro");
-            model.addAttribute("actualizarLibro", libroEncontrado);
+        try {
+            model.addAttribute("listaEditoriales", editorialFeignClient.obtenerEditoriales());
+        } catch (Exception ignored) {}
 
-            return "libro/actualizar-libro";
-        }
-        return vistaResultado;
+        try {
+            model.addAttribute("listaAutores", autorFeignClient.obtenerAutores()); // <--- ¡FALTABA ESTA!
+        } catch (Exception ignored) {}
+
+        try {
+            model.addAttribute("listaEjemplares", ejemplarFeingClient.obtenerEjemplares()); // <--- ¡FALTABA ESTA!
+        } catch (Exception ignored) {}
+
+        model.addAttribute("abrirModal", true);
+        return "libro/listar-libros";
     }
 
     @PostMapping("/biblioteca/actualizarLibro")
-    public String libroActualizado(@ModelAttribute("actualizarLibro") Libro libroActualizar, Model model) {
-        try{
+    public String libroActualizado(@ModelAttribute Libro libroActualizar, Model model) {
+        try {
             ResponseEntity<Libro> response = libroRestClient.actualizarLibro(libroActualizar.getIsbn(), libroActualizar);
 
             if (response.getStatusCode().is2xxSuccessful()) {
-                return "redirect:/biblioteca/detalleLibro/"+libroActualizar.getIsbn();
+                return "redirect:/biblioteca/listar-libros";
             }
+
             if (response.getStatusCode() == HttpStatus.SERVICE_UNAVAILABLE) {
-                model.addAttribute("errorMensaje", "El servidor de BD está fuera de servicio. Intenta más tarde.");
+                model.addAttribute("errorMensaje", "El servidor de base de datos está fuera de servicio.");
+            } else {
+                model.addAttribute("errorMensaje", "No se pudo actualizar el libro. Verifica los campos.");
             }
-            else {
-                model.addAttribute("errorMensaje", "No se pudo actualizar el libro. Verifica los datos.");
-            }
+        } catch (Exception e) {
+            model.addAttribute("errorMensaje", "El servicio de backend no está disponible en este momento.");
         }
-        catch (Exception e){
-            model.addAttribute("errorMensaje", "El servicio no está disponible en este momento. Intenta más tarde.");
-        }
-        return "libro/actualizar-libro";
+
+        // Si falla la edición, reinyectamos las editoriales para que el modal de edición no se rompa
+        model.addAttribute("listaTodosLibros", libroRestClient.listarLibros());
+        try {
+            model.addAttribute("listaEditoriales", editorialFeignClient.obtenerEditoriales());
+        } catch (Exception ignored) {}
+
+        model.addAttribute("libroNuevo", new Libro());
+        return "libro/listar-libros";
     }
 
-    //La eliminación se puede hacer con un GET
     @GetMapping("/biblioteca/eliminarLibro/{isbn}")
     public String eliminarLibro(@PathVariable String isbn, Model model) {
-        try{
+        try {
             ResponseEntity<Libro> response = libroRestClient.eliminarLibro(isbn);
 
             if (response.getStatusCode().is2xxSuccessful()) {
                 return "redirect:/biblioteca/listar-libros";
             }
 
-            if  (response.getStatusCode() == HttpStatus.SERVICE_UNAVAILABLE) {
-                model.addAttribute("errorMensaje", "El servidor de BD está fuera de servicio. Intenta más tarde.");
+            if (response.getStatusCode() == HttpStatus.SERVICE_UNAVAILABLE) {
+                model.addAttribute("errorMensaje", "El servidor de base de datos está fuera de servicio.");
+            } else {
+                model.addAttribute("errorMensaje", "No se pudo eliminar el libro seleccionado.");
             }
-            else {
-                model.addAttribute("errorMensaje", "No se pudo eliminar el libro. Verifica los datos.");
-            }
+        } catch (Exception e) {
+            model.addAttribute("errorMensaje", "El servicio de backend no está disponible en este momento.");
         }
-        catch (Exception e){
-            model.addAttribute("errorMensaje", "El servicio no está disponible en este momento. Intenta más tarde.");
-        }
-        //Traemos la lista para que el métod tenga algo que mostrar al fallar
+
         model.addAttribute("listaTodosLibros", libroRestClient.listarLibros());
+        try {
+            model.addAttribute("listaEditoriales", editorialFeignClient.obtenerEditoriales());
+        } catch (Exception ignored) {}
+
+        if (!model.containsAttribute("libroNuevo")) {
+            model.addAttribute("libroNuevo", new Libro());
+        }
         return "libro/listar-libros";
     }
 }
