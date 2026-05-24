@@ -1,49 +1,487 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="es-CO">
 <head>
     <meta charset="UTF-8">
     <title>Inventario de Biblioteca</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" th:href="@{/styles.css}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
-<body>
+<body class="bg-slate-50 text-slate-900 antialiased min-h-screen"
+      th:data-abrir-modal="${abrirModal != null ? abrirModal : false}">
 
-<div class="container mt-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-primary fw-bold">📚 Inventario de Libros</h2>
-        <a th:href="@{/biblioteca/registrarLibro}" class="btn btn-success fw-bold">+ Registrar Nuevo Libro</a>
+<div th:replace="~{/layout/navbar :: menuPrincipal}"></div>
+
+<div class="max-w-6xl mx-auto px-4 py-10">
+
+    <div th:if="${errorMensaje}" class="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 text-rose-800 animate-pulse">
+        <span class="text-xl">⚠️</span>
+        <div>
+            <h4 class="font-semibold text-sm">Hubo un problema</h4>
+            <p class="text-xs text-rose-600 mt-0.5" th:text="${errorMensaje}"></p>
+        </div>
     </div>
 
-    <div class="card p-4">
-        <table class="table table-hover align-middle m-0">
-            <thead class="table-dark">
-            <tr>
-                <th>ISBN</th>
-                <th>Título</th>
-                <th>Acciones</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="libro : ${listaTodosLibros}">
-                <td class="fw-bold" th:text="${libro.isbn}"></td>
-                <td th:text="${libro.titulo}"></td>
-                <td>
-                    <a th:href="@{/biblioteca/actualizarLibro/{id}(id=${libro.isbn})}" class="btn btn-warning btn-sm me-2 fw-medium">Editar</a>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                <span>📚</span> Inventario de Libros
+            </h1>
+            <p class="text-sm text-slate-500 mt-1">Gestión integral de títulos, volúmenes y editoriales en una sola vista.</p>
+        </div>
+        <button onclick="openModal('registerModal')" class="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2.5 rounded-xl shadow-sm transition-all gap-2 transform active:scale-95">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+            Registrar Nuevo Libro
+        </button>
+    </div>
 
-                    <a th:href="@{/biblioteca/eliminarLibro/{id}(id=${libro.isbn})}"
-                       class="btn btn-danger btn-sm fw-medium"
-                       onclick="return confirm('¿Estás seguro de que deseas eliminar este libro?');">
-                        Eliminar
-                    </a>
-                </td>
-            </tr>
-            <tr th:if="${#lists.isEmpty(listaTodosLibros)}">
-                <td colspan="3" class="text-center text-muted py-4">No hay libros registrados en el sistema.</td>
-            </tr>
-            </tbody>
-        </table>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                <tr class="bg-slate-50 border-b border-slate-200">
+                    <th class="p-4 text-xs font-semibold text-slate-700 uppercase tracking-wider w-1/6">ISBN</th>
+                    <th class="p-4 text-xs font-semibold text-slate-700 uppercase tracking-wider">Título</th>
+                    <th class="p-4 text-xs font-semibold text-slate-700 uppercase tracking-wider text-right w-1/6">Acciones</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                <tr th:each="libro : ${listaTodosLibros}" class="hover:bg-slate-50/70 transition-colors group">
+                    <td class="p-4 whitespace-nowrap font-mono text-xs font-medium text-slate-600" th:text="${libro.isbn}"></td>
+                    <td class="p-4 font-medium text-slate-900" th:text="${libro.titulo}"></td>
+                    <td class="p-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div class="flex justify-end gap-2">
+
+                            <button type="button"
+                                    th:data-isbn="${libro.isbn}"
+                                    th:data-titulo="${libro.titulo}"
+                                    th:data-editorial="${libro.editorial != null ? libro.editorial.nombre : 'No asignada'}"
+                                    onclick="prepararModalInfo(this)"
+                                    class="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 font-medium transition-colors text-sm">
+                                ℹ️ Info
+                            </button>
+
+                            <button type="button"
+                                    th:data-isbn="${libro.isbn}"
+                                    th:data-titulo="${libro.titulo}"
+                                    th:data-numpag="${libro.numPag}"
+                                    th:data-editorial="${libro.editorial != null ? libro.editorial.nombre : ''}"
+                                    onclick="prepararActualizacion(this)"
+                                    class="inline-flex items-center justify-center text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-xs font-medium shadow-sm transition-colors">
+                                Editar
+                            </button>
+
+                            <a th:href="@{/biblioteca/eliminarLibro/{id}(id=${libro.isbn})}"
+                               onclick="return confirm('¿Estás seguro de que deseas eliminar este libro?');"
+                               class="inline-flex items-center justify-center text-rose-600 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors">
+                                Eliminar
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(listaTodosLibros)}">
+                    <td colspan="5" class="px-6 py-12 text-center text-slate-400">No hay libros registrados.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div> <div id="registerModal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-sm items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md transform scale-95 transition-transform duration-300 overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+            <h3 class="text-lg font-semibold text-slate-900">Registrar Nuevo Libro</h3>
+            <button onclick="closeModal('registerModal')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+        </div>
+        <form th:action="@{/biblioteca/registrarLibro}" th:object="${libroNuevo}" method="POST" class="p-6 space-y-4">
+            <div>
+                <label for="isbn" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">ISBN</label>
+                <input type="text" id="isbn" th:field="*{isbn}" required class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all font-mono">
+            </div>
+            <div>
+                <label for="titulo" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Título del Libro</label>
+                <input type="text" id="titulo" th:field="*{titulo}" required class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="numPag" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Nº de Páginas</label>
+                    <input type="number" id="numPag" th:field="*{numPag}" required class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all">
+                </div>
+                <div>
+                    <label for="editorial" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Editorial</label>
+                    <div class="relative">
+                        <select id="editorial" th:field="*{editorial.id}" required
+                                class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all appearance-none text-slate-700">
+                            <option value="" disabled selected>-- Selecciona una Editorial --</option>
+                            <option th:each="edit : ${listaEditoriales}"
+                                    th:value="${edit.id}"
+                                    th:text="${edit.nombre}"></option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                            <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label for="idAutor" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Autor</label>
+                    <div class="relative">
+                        <select id="idAutor" name="idAutor" required
+                                class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all appearance-none text-slate-700">
+                            <option value="" disabled selected>-- Selecciona un Autor --</option>
+                            <option th:each="autor : ${listaAutores}"
+                                    th:value="${autor.idAutor}"
+                                    th:text="${autor.nombre +' '+ autor.apellido}"></option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                            <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 mt-6">
+                <button type="button" onclick="closeModal('registerModal')" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 border border-slate-200 rounded-xl">Cancelar</button>
+                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm">Guardar Libro</button>
+            </div>
+        </form>
     </div>
 </div>
+
+<div id="modalInfo" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+    <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 border border-slate-100 mx-4 max-h-[90vh] overflow-y-auto">
+
+        <div class="flex justify-between items-start border-b border-slate-100 pb-4 mb-4">
+            <div>
+                <h3 id="infoTitulo" class="text-xl font-bold text-slate-900">Título del Libro</h3>
+                <p id="infoIsbn" class="text-sm text-slate-500">ISBN: 123456789</p>
+            </div>
+            <button onclick="cerrarModalInfo()" class="text-slate-400 hover:text-slate-600 text-xl font-semibold">&times;</button>
+        </div>
+
+        <div class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl">
+                <div>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Editorial</h4>
+                    <p id="infoEditorial" class="text-slate-800 font-medium">Nombre de Editorial</p>
+                </div>
+                <div>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Autores Relacionados</h4>
+                    <p id="infoAutores" class="text-slate-800 font-medium">Autor A, Autor B</p>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <h4 class="font-bold text-slate-800 flex items-center gap-2">
+                        🏷️ Copias Físicas (Ejemplares)
+                    </h4>
+                    <button onclick="mostrarFormEjemplar()" class="text-xs bg-indigo-600 text-white px-2.5 py-1.5 rounded-lg hover:bg-indigo-700 font-semibold transition-colors shadow-sm">
+                        + Agregar Copia
+                    </button>
+                </div>
+
+                <form id="formNuevoEjemplar" class="hidden bg-indigo-50/50 border border-indigo-100 rounded-xl p-4 mb-4 space-y-3">
+                    <div>
+                        <label for="ejemplarId" class="block text-xs font-medium text-indigo-950 mb-1">Código Único (ID Ejemplar)</label>
+                        <input type="text" id="ejemplarId" placeholder="Ej: EJ010" required
+                               class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:outline-indigo-600">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+
+                        <div>
+                            <label for="ejemplarUbicacion" class="block text-xs font-medium text-indigo-950 mb-1">Ubicación (Estante/Pasillo)</label>
+                            <input type="text" id="ejemplarUbicacion" placeholder="Ej: Estante B-4" class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:outline-indigo-600">
+                        </div>
+                        <div>
+                            <label for="ejemplarEstado" class="block text-xs font-medium text-indigo-950 mb-1">Estado Inicial</label>
+                            <select id="ejemplarEstado" class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:outline-indigo-600">
+                                <option value="Disponible">Disponible</option>
+                                <option value="Mantenimiento">Mantenimiento</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="ocultarFormEjemplar()" class="px-3 py-1 text-xs text-slate-600 font-medium hover:underline">Cancelar</button>
+                        <button type="submit" class="px-3 py-1 text-xs bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700">Guardar Copia</button>
+                    </div>
+                </form>
+
+                <div class="border border-slate-100 rounded-xl overflow-hidden">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 text-slate-500 font-medium text-xs">
+                        <tr>
+                            <th class="p-2.5">Código Único</th>
+                            <th class="p-2.5">Ubicación</th>
+                            <th class="p-2.5">Estado</th>
+                        </tr>
+                        </thead>
+                        <tbody id="tablaInfoEjemplares" class="text-slate-700 divide-y divide-slate-100">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="updateModal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-sm items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md transform scale-95 transition-transform duration-300 overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+            <h3 class="text-lg font-semibold text-slate-900">Modificar Libro</h3>
+            <button onclick="closeModal('updateModal')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+        </div>
+        <form th:href="@{/biblioteca/actualizarLibro}" method="POST" class="p-6 space-y-4">
+            <div>
+                <label for="updateIsbn" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">ISBN (No modificable)</label>
+                <input type="text" id="updateIsbn" name="isbn" readonly class="w-full px-3.5 py-2 bg-slate-100 border border-slate-200 rounded-xl text-sm font-mono text-slate-500 cursor-not-allowed outline-none">
+            </div>
+            <div>
+                <label for="updateTitulo" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Título del Libro</label>
+                <input type="text" id="updateTitulo" name="titulo" required class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="updateNumPag" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Nº de Páginas</label>
+                    <input type="number" id="updateNumPag" name="numPag" required class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all">
+                </div>
+                <div>
+                    <label for="updateEditorial" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Editorial</label>
+                    <div class="relative">
+                        <select id="updateEditorial" name="editorial.id" required
+                                class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all appearance-none text-slate-700">
+                            <option th:each="edit : ${listaEditoriales}"
+                                    th:value="${edit.id}"
+                                    th:text="${edit.nombre}"></option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                            <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 mt-6">
+                <button type="button" onclick="closeModal('updateModal')" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 border border-slate-200 rounded-xl">Cancelar</button>
+                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-xl shadow-sm">Aplicar Cambios</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+
+    function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        const content = modal.querySelector('.transform');
+        if (!modal || !content) return;
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+            content.classList.add('scale-100');
+        }, 10);
+    }
+
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        const content = modal.querySelector('.transform');
+        if (!modal || !content) return;
+
+        modal.classList.add('opacity-0');
+        content.classList.remove('scale-100');
+        content.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }, 200);
+    }
+
+    // Cierre automático si el usuario hace clic en el fondo oscuro difuminado
+    document.querySelectorAll('.fixed').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                if (this.id === 'modalInfo') {
+                    cerrarModalInfo();
+                } else {
+                    closeModal(this.id);
+                }
+            }
+        });
+    });
+
+    function prepararActualizacion(btn) {
+        document.getElementById('updateIsbn').value = btn.getAttribute('data-isbn') || '';
+        document.getElementById('updateTitulo').value = btn.getAttribute('data-titulo') || '';
+        document.getElementById('updateNumPag').value = btn.getAttribute('data-numpag') || '';
+
+        const editorialNombre = btn.getAttribute('data-editorial');
+        const selectEdit = document.getElementById('updateEditorial');
+
+        // Busca la opción que coincida con el nombre de la editorial y la selecciona
+        for (let i = 0; i < selectEdit.options.length; i++) {
+            if (selectEdit.options[i].text === editorialNombre) {
+                selectEdit.selectedIndex = i;
+                break;
+            }
+        }
+
+        openModal('updateModal');
+    }
+
+    function prepararModalInfo(btn) {
+        // Obtener y pintar los datos básicos del libro que ya vienen en el botón de la tabla
+        const isbn = btn.getAttribute('data-isbn') || '';
+        const titulo = btn.getAttribute('data-titulo') || 'Sin título';
+        const editorial = btn.getAttribute('data-editorial') || 'No asignada';
+
+        document.getElementById('infoTitulo').innerText = titulo;
+        document.getElementById('infoIsbn').innerText = 'ISBN: ' + isbn;
+        document.getElementById('infoEditorial').innerText = editorial;
+
+        // Ponemos estados de carga visuales antes de que responda el microservicio
+        document.getElementById('infoAutores').innerText = "Buscando autores...";
+        const tablaEjemplares = document.getElementById('tablaInfoEjemplares');
+        tablaEjemplares.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-xs text-slate-400">Cargando ejemplares...</td></tr>';
+
+        // Abrimos el modal quitando la clase 'hidden' de Tailwind
+        document.getElementById('modalInfo').classList.remove('hidden');
+
+        // Realizamos la consulta asíncrona usando la ruta segura con el context-path de Thymeleaf
+        fetch('[[@{/biblioteca/api/libro-detalle/}]]' + isbn)
+            .then(function(response) {
+                if (!response.ok) throw new Error("Error en la respuesta del servidor");
+                return response.json();
+            })
+            .then(function(data) {
+                // Pintamos los autores devueltos por el backend (usando corchetes anti-warnings)
+                document.getElementById('infoAutores').innerText = data['autores'] || 'Anónimo / Desconocido';
+
+                // Limpiamos el mensaje de "Cargando..." para renderizar los ejemplares reales
+                tablaEjemplares.innerHTML = '';
+                const listaCopias = data['ejemplares'] || [];
+
+                if (listaCopias.length === 0) {
+                    tablaEjemplares.innerHTML =
+                        '<tr>' +
+                        '<td colspan="3" class="p-4 text-center text-xs text-slate-400">' +
+                        'No hay ejemplares físicos registrados para este libro.' +
+                        '</td>' +
+                        '</tr>';
+                } else {
+                    listaCopias.forEach(function(ejemplar) {
+                        // Validamos las tres caras del campo bit/boolean (true, 1 o "1")
+                        const valorEstado = ejemplar['estado'];
+                        const esDisponible = (valorEstado === true || valorEstado === 1 || valorEstado === "1");
+
+                        const textoEstado = esDisponible ? 'Disponible' : 'Prestado';
+                        const claseBadge = esDisponible
+                            ? 'bg-green-50 text-green-700'
+                            : 'bg-amber-50 text-amber-700';
+
+                        const ubicacionActual = ejemplar['ubicacion'] || 'Sin ubicar';
+                        const idActual = ejemplar['id'] || 'N/A';
+
+                        // Insertamos la fila estructurada en la tabla del modal
+                        tablaEjemplares.innerHTML +=
+                            '<tr class="border-b border-slate-100 hover:bg-slate-50/50">' +
+                            '<td class="p-2.5 font-mono text-xs text-slate-600">' + idActual + '</td>' +
+                            '<td class="p-2.5 text-xs text-slate-700">' + ubicacionActual + '</td>' +
+                            '<td class="p-2.5 text-xs">' +
+                            '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ' + claseBadge + '">' +
+                            textoEstado +
+                            '</span>' +
+                            '</td>' +
+                            '</tr>';
+                    });
+                }
+            })
+            .catch(function(error) {
+                console.error("Error al conectar con la API de detalles:", error);
+                document.getElementById('infoAutores').innerText = "Error al cargar";
+                tablaEjemplares.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-xs text-rose-600">Error de conexión con el servicio.</td></tr>';
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const formulario = document.getElementById('formNuevoEjemplar');
+
+        if (formulario) {
+            formulario.addEventListener('submit', function(e) {
+                // Evitamos que la página se recargue por defecto e interrumpa el flujo
+                e.preventDefault();
+
+                // Extraemos el ISBN del libro activo en el modal eliminando el prefijo de texto
+                const isbnTexto = document.getElementById('infoIsbn').innerText;
+                const isbnLimpio = isbnTexto.replace('ISBN:', '').trim();
+
+                // Capturamos los datos ingresados por el usuario
+                const idValue = document.getElementById('ejemplarId').value.trim();
+                const ubicacionValue = document.getElementById('ejemplarUbicacion').value.trim();
+                const estadoSelect = document.getElementById('ejemplarEstado').value;
+
+                // Evaluamos el select para mandar un booleano nativo (true/false) que Jackson entienda
+                const estadoBoolean = (estadoSelect === 'Disponible');
+
+                // Estructuramos el JSON con el idEjemplar requerido por la PK de tu DB
+                const datosEjemplar = {
+                    "id": idValue,
+                    "ubicacion": ubicacionValue,
+                    "estado": estadoBoolean,
+                    "libro": {
+                        "isbn": isbnLimpio
+                    }
+                };
+
+                // Enviamos el POST al controlador intermediario de Spring Boot
+                fetch('[[@{/biblioteca/ejemplares}]]', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(datosEjemplar)
+                })
+                    .then(function(response) {
+                        if (response.ok) {
+                            alert("¡Ejemplar " + idValue + " guardado con éxito en la base de datos!");
+                            formulario.reset();
+                            location.reload(); // Recarga la vista para actualizar los contadores y las tablas globales
+                        } else {
+                            alert("Error en el servidor al intentar guardar el ejemplar (Verifica si el ID ya existe).");
+                        }
+                    })
+                    .catch(function(error) {
+                        console.error("Error en la petición POST:", error);
+                        alert("No se pudo conectar con el servidor para procesar el guardado.");
+                    });
+            });
+        }
+    });
+
+    function cerrarModalInfo() {
+        document.getElementById('modalInfo').classList.add('hidden');
+        ocultarFormEjemplar(); // Deja el formulario de copias limpio si se quedó abierto
+    }
+
+    // Muestra el miniformulario dinámico para registrar una copia física
+    function mostrarFormEjemplar() {
+        document.getElementById('formNuevoEjemplar').classList.remove('hidden');
+    }
+
+    // Oculta y limpia los inputs del miniformulario
+    function ocultarFormEjemplar() {
+        const form = document.getElementById('formNuevoEjemplar');
+        form.classList.add('hidden');
+        form.reset();
+    }
+
+    const debeAbrirModal = document.body.getAttribute('data-abrir-modal') === 'true';
+    if (debeAbrirModal) {
+        openModal('registerModal');
+    }
+</script>
 
 </body>
 </html>
