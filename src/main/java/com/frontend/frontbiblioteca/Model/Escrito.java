@@ -2,12 +2,12 @@ package com.frontend.frontbiblioteca.Model;
 
 import lombok.Data;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 @Data
 public class Escrito {
     String id;
-    Date fechascrito;
+    LocalDate fechaEscrito;
     String ciudad;
     Libro libro;
     Autor autor;
