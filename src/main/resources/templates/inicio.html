@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Inicio - Sistema de Biblioteca</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet" th:href="@{/static.css/style.css}">
+</head>
+<body class="bg-light">
+
+<div th:replace="~{layout/navbar :: menuPrincipal}"></div>
+
+<div class="container mt-5">
+    <div class="p-5 mb-4 bg-white rounded-3 shadow-sm border">
+        <div class="container-fluid py-3">
+            <h1 class="display-5 fw-bold text-dark">¡Bienvenido al Sistema de Gestión de Biblioteca! 🚀</h1>
+            <p class="col-md-8 fs-4 text-muted mt-3">
+                Desde este panel puedes administrar de forma integral los títulos, controlar las copias físicas (ejemplares), registrar nuevos miembros y procesar préstamos al instante.
+            </p>
+        </div>
+    </div>
+
+    <div class="row g-4 mt-2">
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body text-center p-4">
+                    <span class="fs-1">📖</span>
+                    <h4 class="card-title mt-2 fw-bold">Catálogo de Libros</h4>
+                    <p class="card-text text-muted">Visualiza, edita y gestiona el inventario de libros y sus ejemplares físicos.</p>
+                    <a th:href="@{/biblioteca/listar-libros}" class="btn btn-primary w-100 mt-2">Ir al Inventario</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body text-center p-4">
+                    <span class="fs-1">👥</span>
+                    <h4 class="card-title mt-2 fw-bold">Gestión de Miembros</h4>
+                    <p class="card-text text-muted">Registra y administra las fichas de los usuarios lectores autorizados.</p>
+                    <a th:href="@{/biblioteca/miembros/listar}" class="btn btn-primary w-100 mt-2">Ver Miembros</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body text-center p-4">
+                    <span class="fs-1">⏱️</span>
+                    <h4 class="card-title mt-2 fw-bold">Préstamos Activos</h4>
+                    <p class="card-text text-muted">Controla las salidas de libros, fechas de vencimiento y devoluciones.</p>
+                    <a th:href="@{/biblioteca/prestamos/listar}" class="btn btn-primary w-100 mt-2">Ir a Préstamos</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
