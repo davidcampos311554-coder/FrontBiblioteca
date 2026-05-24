@@ -19,23 +19,21 @@ repositories {
 }
 
 dependencies {
-    // 1. CORREGIDO: Dependencia Web estándar de Spring Boot
     implementation 'org.springframework.boot:spring-boot-starter-web'
-
-    // 2. AGREGADO: El motor indispensable para que funcionen tus archivos HTML
-    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign:5.0.0'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf:4.0.6'
 
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     annotationProcessor 'org.projectlombok:lombok'
 
-    // CORREGIDO: Dependencia de pruebas estándar
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
     testCompileOnly 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
 }
+
 
 tasks.named('test') {
     useJUnitPlatform()
