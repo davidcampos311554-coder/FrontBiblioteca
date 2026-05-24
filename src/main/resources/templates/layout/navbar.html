@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head></head>
+<body>
+
+<nav th:fragment="menuPrincipal" class="bg-white border-b border-slate-200 shadow-sm w-full font-sans">
+    <div class="max-w-6xl mx-auto px-4">
+        <div class="flex justify-between h-16 items-center">
+
+            <a th:href="@{/biblioteca/inicio}" class="flex items-center gap-2 no-underline text-slate-950 hover:opacity-80 transition-opacity">
+                <span class="text-2xl">📚</span>
+                <span class="font-bold text-lg tracking-tight text-slate-900">BiblioGest</span>
+            </a>
+
+            <div class="flex items-center gap-6 text-sm font-semibold">
+                <a th:href="@{/biblioteca/inicio}"
+                   class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">
+                    Inicio
+                </a>
+
+                <a th:href="@{/biblioteca/listar-libros}"
+                   class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">
+                    Inventario Libros
+                </a>
+
+                <a th:href="@{/biblioteca/miembros/listar}"
+                   class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">
+                    Gestión Miembros
+                </a>
+
+                <a th:href="@{/biblioteca/prestamos/listar}"
+                   class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">
+                    Préstamos
+                </a>
+            </div>
+
+        </div>
+    </div>
+</nav>
+
+</body>
+</html>
