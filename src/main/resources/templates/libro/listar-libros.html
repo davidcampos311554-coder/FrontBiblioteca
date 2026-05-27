@@ -269,7 +269,7 @@
     </div>
 </div>
 
-<script>
+<script th:inline="javascript">
 
     function openModal(modalId) {
         const modal = document.getElementById(modalId);
@@ -332,7 +332,6 @@
     }
 
     function prepararModalInfo(btn) {
-        // Obtener y pintar los datos básicos del libro que ya vienen en el botón de la tabla
         const isbn = btn.getAttribute('data-isbn') || '';
         const titulo = btn.getAttribute('data-titulo') || 'Sin título';
         const editorial = btn.getAttribute('data-editorial') || 'No asignada';
@@ -341,59 +340,40 @@
         document.getElementById('infoIsbn').innerText = 'ISBN: ' + isbn;
         document.getElementById('infoEditorial').innerText = editorial;
 
-        // Ponemos estados de carga visuales antes de que responda el microservicio
         document.getElementById('infoAutores').innerText = "Buscando autores...";
         const tablaEjemplares = document.getElementById('tablaInfoEjemplares');
         tablaEjemplares.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-xs text-slate-400">Cargando ejemplares...</td></tr>';
 
-        // Abrimos el modal quitando la clase 'hidden' de Tailwind
         document.getElementById('modalInfo').classList.remove('hidden');
 
-        // Realizamos la consulta asíncrona usando la ruta segura con el context-path de Thymeleaf
-        fetch('[[@{/biblioteca/api/libro-detalle/}]]' + isbn)
+        // Corrección de la URL usando asignación segura de Thymeleaf para JavaScript
+        const urlDetalle = /*[[@{/biblioteca/api/libro-detalle/}]]*/ '/biblioteca/api/libro-detalle/';
+
+        fetch(urlDetalle + isbn)
             .then(function(response) {
                 if (!response.ok) throw new Error("Error en la respuesta del servidor");
                 return response.json();
             })
             .then(function(data) {
-                // Pintamos los autores devueltos por el backend (usando corchetes anti-warnings)
                 document.getElementById('infoAutores').innerText = data['autores'] || 'Anónimo / Desconocido';
-
-                // Limpiamos el mensaje de "Cargando..." para renderizar los ejemplares reales
                 tablaEjemplares.innerHTML = '';
                 const listaCopias = data['ejemplares'] || [];
 
                 if (listaCopias.length === 0) {
                     tablaEjemplares.innerHTML =
-                        '<tr>' +
-                        '<td colspan="3" class="p-4 text-center text-xs text-slate-400">' +
-                        'No hay ejemplares físicos registrados para este libro.' +
-                        '</td>' +
-                        '</tr>';
+                        '<tr><td colspan="3" class="p-4 text-center text-xs text-slate-400">No hay ejemplares físicos registrados.</td></tr>';
                 } else {
                     listaCopias.forEach(function(ejemplar) {
-                        // Validamos las tres caras del campo bit/boolean (true, 1 o "1")
                         const valorEstado = ejemplar['estado'];
                         const esDisponible = (valorEstado === true || valorEstado === 1 || valorEstado === "1");
-
                         const textoEstado = esDisponible ? 'Disponible' : 'Prestado';
-                        const claseBadge = esDisponible
-                            ? 'bg-green-50 text-green-700'
-                            : 'bg-amber-50 text-amber-700';
+                        const claseBadge = esDisponible ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700';
 
-                        const ubicacionActual = ejemplar['ubicacion'] || 'Sin ubicar';
-                        const idActual = ejemplar['id'] || 'N/A';
-
-                        // Insertamos la fila estructurada en la tabla del modal
                         tablaEjemplares.innerHTML +=
                             '<tr class="border-b border-slate-100 hover:bg-slate-50/50">' +
-                            '<td class="p-2.5 font-mono text-xs text-slate-600">' + idActual + '</td>' +
-                            '<td class="p-2.5 text-xs text-slate-700">' + ubicacionActual + '</td>' +
-                            '<td class="p-2.5 text-xs">' +
-                            '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ' + claseBadge + '">' +
-                            textoEstado +
-                            '</span>' +
-                            '</td>' +
+                            '<td class="p-2.5 font-mono text-xs text-slate-600">' + (ejemplar['id'] || 'N/A') + '</td>' +
+                            '<td class="p-2.5 text-xs text-slate-700">' + (ejemplar['ubicacion'] || 'Sin ubicar') + '</td>' +
+                            '<td class="p-2.5 text-xs"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ' + claseBadge + '">' + textoEstado + '</span></td>' +
                             '</tr>';
                     });
                 }
@@ -410,51 +390,41 @@
 
         if (formulario) {
             formulario.addEventListener('submit', function(e) {
-                // Evitamos que la página se recargue por defecto e interrumpa el flujo
                 e.preventDefault();
 
-                // Extraemos el ISBN del libro activo en el modal eliminando el prefijo de texto
                 const isbnTexto = document.getElementById('infoIsbn').innerText;
                 const isbnLimpio = isbnTexto.replace('ISBN:', '').trim();
-
-                // Capturamos los datos ingresados por el usuario
                 const idValue = document.getElementById('ejemplarId').value.trim();
                 const ubicacionValue = document.getElementById('ejemplarUbicacion').value.trim();
                 const estadoSelect = document.getElementById('ejemplarEstado').value;
-
-                // Evaluamos el select para mandar un booleano nativo (true/false) que Jackson entienda
                 const estadoBoolean = (estadoSelect === 'Disponible');
 
-                // Estructuramos el JSON con el idEjemplar requerido por la PK de tu DB
                 const datosEjemplar = {
                     "id": idValue,
                     "ubicacion": ubicacionValue,
                     "estado": estadoBoolean,
-                    "libro": {
-                        "isbn": isbnLimpio
-                    }
+                    "libro": { "isbn": isbnLimpio }
                 };
 
-                // Enviamos el POST al controlador intermediario de Spring Boot
-                fetch('[[@{/biblioteca/ejemplares}]]', {
+                const urlEjemplares = /*[[@{/biblioteca/ejemplares}]]*/ '/biblioteca/ejemplares';
+
+                fetch(urlEjemplares, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(datosEjemplar)
                 })
                     .then(function(response) {
                         if (response.ok) {
-                            alert("¡Ejemplar " + idValue + " guardado con éxito en la base de datos!");
+                            alert("¡Ejemplar " + idValue + " guardado con éxito!");
                             formulario.reset();
-                            location.reload(); // Recarga la vista para actualizar los contadores y las tablas globales
+                            location.reload();
                         } else {
-                            alert("Error en el servidor al intentar guardar el ejemplar (Verifica si el ID ya existe).");
+                            alert("Error en el servidor al intentar guardar el ejemplar.");
                         }
                     })
                     .catch(function(error) {
                         console.error("Error en la petición POST:", error);
-                        alert("No se pudo conectar con el servidor para procesar el guardado.");
+                        alert("No se pudo conectar con el servidor.");
                     });
             });
         }
@@ -462,22 +432,22 @@
 
     function cerrarModalInfo() {
         document.getElementById('modalInfo').classList.add('hidden');
-        ocultarFormEjemplar(); // Deja el formulario de copias limpio si se quedó abierto
+        ocultarFormEjemplar();
     }
 
-    // Muestra el miniformulario dinámico para registrar una copia física
     function mostrarFormEjemplar() {
         document.getElementById('formNuevoEjemplar').classList.remove('hidden');
     }
 
-    // Oculta y limpia los inputs del miniformulario
     function ocultarFormEjemplar() {
         const form = document.getElementById('formNuevoEjemplar');
-        form.classList.add('hidden');
-        form.reset();
+        if(form) {
+            form.classList.add('hidden');
+            form.reset();
+        }
     }
 
-    const debeAbrirModal = document.body.getAttribute('data-abrir-modal') === 'true';
+    const debeAbrirModal = /*[[${abrirModal != null ? abrirModal : false}]]*/ false;
     if (debeAbrirModal) {
         openModal('registerModal');
     }
