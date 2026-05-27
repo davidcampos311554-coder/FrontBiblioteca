@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es-CO">
+<head>
+    <meta charset="UTF-8">
+    <title>Control de Préstamos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased min-h-screen"
+      th:data-abrir-modal="${abrirModal != null ? abrirModal : false}">
+
+<div th:replace="~{/layout/navbar :: menuPrincipal}"></div>
+
+<div class="max-w-6xl mx-auto px-4 py-10">
+
+    <div th:if="${errorMensaje}" class="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 text-rose-800 animate-pulse">
+        <span class="text-xl">⚠️</span>
+        <div>
+            <h4 class="font-semibold text-sm">Hubo un problema</h4>
+            <p class="text-xs text-rose-600 mt-0.5" th:text="${errorMensaje}"></p>
+        </div>
+    </div>
+
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                <span>📋</span> Control de Préstamos
+            </h1>
+            <p class="text-sm text-slate-500 mt-1">Gestión integral de salidas, entregas vigentes e historial de lectores.</p>
+        </div>
+        <button onclick="openModal('registerModal')" class="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2.5 rounded-xl shadow-sm transition-all gap-2 transform active:scale-95">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+            Registrar Nuevo Préstamo
+        </button>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                <tr class="bg-slate-50 border-b border-slate-200">
+                    <th class="p-4 text-xs font-semibold text-slate-700 uppercase tracking-wider w-1/12">ID</th>
+                    <th class="p-4 text-xs font-semibold text-slate-700 uppercase tracking-wider">Miembro / Lector</th>
+                    <th class="p-4 text-xs font-semibold text-slate-700 uppercase tracking-wider">Ejemplar ID</th>
+                    <th class="p-4 text-xs font-semibold text-slate-700 uppercase tracking-wider">Responsable</th>
+                    <th class="p-4 text-xs font-semibold text-slate-700 uppercase tracking-wider">Fecha Salida</th>
+                    <th class="p-4 text-xs font-semibold text-slate-700 uppercase tracking-wider">Estado / Devolución</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                <tr th:each="p : ${listaPrestamos}" class="hover:bg-slate-50/70 transition-colors group">
+                    <td class="p-4 whitespace-nowrap font-mono text-xs font-bold text-slate-700" th:text="${p.idPrestamo}"></td>
+                    <td class="p-4 font-medium text-slate-900" th:text="${p.miembro != null ? p.miembro.nombre +' '+ p.miembro.apellido : 'No asignado'}"></td>
+                    <td class="p-4 font-mono text-xs text-slate-600" th:text="${p.ejemplar != null ? p.ejemplar.id+'.'+p.ejemplar.libro.titulo : 'N/A'}"></td>
+                    <td class="p-4 text-sm text-slate-600" th:text="${p.bibliotecario != null ? p.bibliotecario.nombre +' '+ p.bibliotecario.apellido : 'N/A'}"></td>
+                    <td class="p-4 text-sm text-slate-600" th:text="${#temporals.format(p.fechaPrestamo, 'dd-MM-yyyy')}"></td>
+                    <td class="p-4 whitespace-nowrap text-sm">
+                        <span th:if="${p.fechaDevolucion == null}" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                            🟠 Activo / En Curso
+                        </span>
+
+                        <button th:if="${p.fechaDevolucion == null}"
+                                th:data-id="${p.idPrestamo}"
+                                onclick="registrarDevolucion(this)"
+                                class="ml-3 inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm transition-colors">
+                            📥 Devolver
+                        </button>
+
+                        <span th:if="${p.fechaDevolucion != null}" th:text="${#temporals.format(p.fechaDevolucion, 'dd-MM-yyyy')}" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">
+                        </span>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(listaPrestamos)}">
+                    <td colspan="6" class="px-6 py-12 text-center text-slate-400">No hay transacciones de préstamos registradas.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="registerModal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-sm items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md transform scale-95 transition-transform duration-300 overflow-hidden">
+
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+            <h3 class="text-lg font-semibold text-slate-900">Registrar Salida de Libro</h3>
+            <button onclick="closeModal('registerModal')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+
+        <form th:action="@{/biblioteca/prestamo/guardar}" th:object="${prestamoNuevo}" method="POST" class="p-6 space-y-4">
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Fecha del Préstamo</label>
+                <div class="w-full px-3.5 py-2 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-500 font-medium select-none cursor-not-allowed flex items-center justify-between">
+                    <span id="labelFechaHoy"></span>
+                    <span>📅</span>
+                </div>
+            </div>
+
+            <div>
+                <label for="idMiembro" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Seleccionar Miembro / Lector</label>
+                <div class="relative">
+                    <select id="idMiembro" name="idMiembro" required
+                            class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all appearance-none text-slate-700">
+                        <option value="" disabled selected>-- Elige un lector --</option>
+                        <option th:each="m : ${listaMiembros}"
+                                th:value="${m.idMiembro}"
+                                th:text="${m.nombre + ' ' + m.apellido}"></option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                        <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label for="idEjemplar" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Seleccionar Ejemplar (Copia Física)</label>
+                <div class="relative">
+                    <select id="idEjemplar" name="idEjemplar" required
+                            class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all appearance-none text-slate-700">
+                        <option value="" disabled selected>-- Elige un código físico --</option>
+                        <option th:each="e : ${listaEjemplaresDisponibles}"
+                                th:value="${e.id}"
+                                th:text="${e.id +'.'+e.libro.titulo}"></option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                        <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label for="idBibliotecario" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Bibliotecario Encargado</label>
+                <div class="relative">
+                    <select id="idBibliotecario" name="idBibliotecario" required
+                            class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all appearance-none text-slate-700">
+                        <option value="" disabled selected>-- Quién autoriza --</option>
+                        <option th:each="b : ${listaBibliotecarios}"
+                                th:value="${b.idBibliotecario}"
+                                th:text="${b.nombre+' '+b.apellido}"></option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                        <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 mt-6">
+                <button type="button" onclick="closeModal('registerModal')" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 border border-slate-200 rounded-xl">Cancelar</button>
+                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm">Confirmar Préstamo</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        const content = modal.querySelector('.transform');
+        if (!modal || !content) return;
+
+        // Dentro de tu función openModal:
+        if (modalId === 'registerModal') {
+            const hoy = new Date();
+            const dia = String(hoy.getDate()).padStart(2, '0');
+            const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+            document.getElementById('labelFechaHoy').innerText = `${dia}/${mes}/${hoy.getFullYear()}`; // Solo adorno visual
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+            content.classList.add('scale-100');
+        }, 10);
+    }
+
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        const content = modal.querySelector('.transform');
+        if (!modal || !content) return;
+
+        modal.classList.add('opacity-0');
+        content.classList.remove('scale-100');
+        content.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }, 200);
+    }
+
+    // Cerrar modal automáticamente si el usuario hace clic fuera de la caja blanca
+    document.querySelectorAll('.fixed').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal(this.id);
+            }
+        });
+    });
+
+    // Auto-apertura si el backend inyectó 'abrirModal' como verdadero
+    const debeAbrirModal = document.body.getAttribute('data-abrir-modal') === 'true';
+    if (debeAbrirModal) {
+        openModal('registerModal');
+    }
+
+    //Registor de devolución
+
+    function registrarDevolucion(btn) {
+        const idPrestamo = btn.getAttribute('data-id');
+
+        if (confirm('¿Confirmar la devolución del ejemplar para el préstamo ' + idPrestamo + '?')) {
+            // Creamos un formulario virtual temporal para mandar el PUT/POST de actualización
+            const form = document.createElement('form');
+            form.method = 'POST'; // Usamos POST porque Thymeleaf/HTML nativo no soporta PUT directo en formularios sin filtros
+            form.action = '[[@{/biblioteca/prestamo/actualizar}]]';
+
+            // Pasamos el ID del préstamo
+            const inputId = document.createElement('input');
+            inputId.type = 'hidden';
+            inputId.name = 'idPrestamo';
+            inputId.value = idPrestamo;
+            form.appendChild(inputId);
+
+            // Pasamos la fecha de hoy formateada en formato HTML (AAAA-MM-DD)
+            const inputFecha = document.createElement('input');
+            inputFecha.type = 'hidden';
+            inputFecha.name = 'fechaDevolucion';
+            inputFecha.value = new Date().toISOString().split('T')[0];
+            form.appendChild(inputFecha);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+</script>
+
+</body>
+</html>
