@@ -1,11 +1,17 @@
 package com.frontend.frontbiblioteca.Model;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Ejemplar {
     String id;
     String ubicacion;
-    boolean estado;
+    Boolean estado;
     Libro libro;
 }

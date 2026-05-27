@@ -27,20 +27,6 @@ public class LibroRestClient {
         return List.of(librosArray);
     }
 
-    /*public ResponseEntity<Libro> buscarLibroPorIsbn(String isbn) {
-        try {
-            //ForEntity retorna statusCode, Headers, Body (contexto http)
-            return restTemplate.getForEntity(baseUrl + "/" + isbn, Libro.class);
-        }
-        catch (HttpStatusCodeException ex) {
-            return ResponseEntity.notFound().build();
-        }
-        catch (Exception e){
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
-        }
-    }
-     */
-
     public ResponseEntity<Libro> crearNuevoLibro(Libro libro) {
         try{
             return restTemplate.postForEntity(baseUrl, libro, Libro.class);
