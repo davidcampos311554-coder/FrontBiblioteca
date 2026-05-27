@@ -1,9 +1,9 @@
 package com.frontend.frontbiblioteca.Views;
 
+import com.frontend.frontbiblioteca.Model.Autor;
 import com.frontend.frontbiblioteca.Model.Ejemplar;
 import com.frontend.frontbiblioteca.Model.Escrito;
 import com.frontend.frontbiblioteca.Model.Libro;
-import com.frontend.frontbiblioteca.Util.EscritoUtil;
 import com.frontend.frontbiblioteca.WebServiceClient.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -43,7 +43,7 @@ public class LibroViewController {
         }
 
         if (!model.containsAttribute("libroNuevo")) {
-            model.addAttribute("libroNuevo", new Libro());
+            model.addAttribute("libroNuevo", Libro.builder().build());
         }
         return "libro/listar-libros";
     }
@@ -92,9 +92,19 @@ public class LibroViewController {
         try {
             ResponseEntity<Libro> response = libroRestClient.crearNuevoLibro(libroNuevo);
 
-            if (response.getStatusCode().is2xxSuccessful()) {
-                List<Escrito> todosLosEscritos =  escritoFeignClient.obtenerEscrito();
-                Escrito escritoNuevo = EscritoUtil.generarEscritoConIdNuevo(todosLosEscritos,response.getBody() ,idAutor);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                // Armamos el objeto Escrito con los datos mínimos indispensables
+                Autor autorCascaron = Autor.builder().idAutor(idAutor).build();
+                Libro libroCascaron = Libro.builder().isbn(response.getBody().getIsbn()).build();
+
+                Escrito escritoNuevo = Escrito.builder()
+                        .id(null)
+                        .libro(libroCascaron)
+                        .autor(autorCascaron)
+                        .build();
+
+                // 3. Enviamos el escrito al backend (que ahora recibe un @RequestBody Escrito)
+                // El backend le asignará el ID (E001, E002...), la fecha, etc., y lo guardará.
                 escritoFeignClient.agregarEscrito(escritoNuevo);
                 return "redirect:/biblioteca/listar-libros";
             }
@@ -106,7 +116,7 @@ public class LibroViewController {
             }
 
         } catch (Exception e) {
-            model.addAttribute("errorMensaje", "El servicio de backend no está disponible en este momento.");
+            model.addAttribute("errorMensaje", e.getMessage());
         }
 
         // --- ASEGURAMOS QUE TODAS LAS LISTAS VUELVAN AL HTML ---
@@ -154,7 +164,7 @@ public class LibroViewController {
             model.addAttribute("listaEditoriales", editorialFeignClient.obtenerEditoriales());
         } catch (Exception ignored) {}
 
-        model.addAttribute("libroNuevo", new Libro());
+        model.addAttribute("libroNuevo", Libro.builder().build());
         return "libro/listar-libros";
     }
 
@@ -182,7 +192,7 @@ public class LibroViewController {
         } catch (Exception ignored) {}
 
         if (!model.containsAttribute("libroNuevo")) {
-            model.addAttribute("libroNuevo", new Libro());
+            model.addAttribute("libroNuevo", Libro.builder().build());
         }
         return "libro/listar-libros";
     }
