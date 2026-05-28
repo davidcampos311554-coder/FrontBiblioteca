@@ -15,4 +15,7 @@ public interface MiembroFeingClient {
 
     @PutMapping("/{id}")
     Miembro  actualizarMiembro(@PathVariable String id, @RequestBody Miembro miembro);
+
+    @DeleteMapping("/{id}")
+    void eliminarMiembro(@PathVariable("id") String id);
 }
