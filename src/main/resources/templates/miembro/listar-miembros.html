@@ -46,6 +46,7 @@
                 <tr class="bg-slate-50 border-b border-slate-200">
                     <th class="p-4 text-xs font-semibold text-slate-700 uppercase tracking-wider w-1/6">ID Miembro</th>
                     <th class="p-4 text-xs font-semibold text-slate-700 uppercase tracking-wider">Nombre Completo</th>
+                    <th class="p-4 text-xs font-semibold text-slate-700 uppercase tracking-wider">Correo</th>
                     <th class="p-4 text-xs font-semibold text-slate-700 uppercase tracking-wider">Dirección</th>
                     <th class="p-4 text-xs font-semibold text-slate-700 uppercase tracking-wider">Teléfono</th>
                     <th class="p-4 text-xs font-semibold text-slate-700 uppercase tracking-wider text-right w-1/4">Acciones</th>
@@ -54,7 +55,8 @@
                 <tbody class="divide-y divide-slate-100">
                 <tr th:each="m : ${listaTodosMiembros}" class="hover:bg-slate-50/70 transition-colors group">
                     <td class="p-4 whitespace-nowrap font-mono text-xs font-medium text-slate-600" th:text="${m.idMiembro}"></td>
-                    <td class="p-4 font-medium text-slate-900" th:text="${m.nombre}"></td>
+                    <td class="p-4 font-medium text-slate-900" th:text="${m.nombre + ' ' + m.apellido}"></td>
+                    <td class="p-4 text-sm text-slate-500" th:text="${m.correo != null ? m.correo : 'No registrado'}"></td>
                     <td class="p-4 text-sm text-slate-500" th:text="${m.direccion != null ? m.direccion : 'No registrada'}"></td>
                     <td class="p-4 text-sm text-slate-600 font-mono" th:text="${m.telefono != null ? m.telefono : 'N/A'}"></td>
                     <td class="p-4 whitespace-nowrap text-right text-sm font-medium">
@@ -62,6 +64,8 @@
                             <button type="button"
                                     th:data-id="${m.idMiembro}"
                                     th:data-nombre="${m.nombre}"
+                                    th:data-apellido="${m.apellido}"
+                                    th:data-correo="${m.correo}"
                                     th:data-direccion="${m.direccion}"
                                     th:data-telefono="${m.telefono}"
                                     onclick="prepararActualizacion(this)"
@@ -95,13 +99,21 @@
             </button>
         </div>
         <form th:action="@{/biblioteca/registrarMiembro}" th:object="${miembroNuevo}" method="POST" class="p-6 space-y-4">
-            <div>
+            <div class="hidden">
                 <label for="idMiembro" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">ID Miembro / Documento</label>
-                <input type="text" id="idMiembro" th:field="*{idMiembro}" required class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all font-mono">
+                <input type="text" id="idMiembro" th:field="*{idMiembro}" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all font-mono">
             </div>
             <div>
-                <label for="nombre" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Nombre Completo</label>
+                <label for="nombre" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Nombre</label>
                 <input type="text" id="nombre" th:field="*{nombre}" required class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all">
+            </div>
+            <div>
+                <label for="apellido" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Apellido</label>
+                <input type="text" id="apellido" th:field="*{apellido}" required class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all">
+            </div>
+            <div>
+                <label for="correo" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Correo</label>
+                <input type="text" id="correo" th:field="*{correo}" required class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all">
             </div>
             <div>
                 <label for="direccion" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Dirección de Residencia</label>
@@ -133,8 +145,16 @@
                 <input type="text" id="updateId" name="idMiembro" readonly class="w-full px-3.5 py-2 bg-slate-100 border border-slate-200 rounded-xl text-sm font-mono text-slate-500 cursor-not-allowed outline-none">
             </div>
             <div>
-                <label for="updateNombre" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Nombre Completo</label>
+                <label for="updateNombre" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Nombre</label>
                 <input type="text" id="updateNombre" name="nombre" required class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all">
+            </div>
+            <div>
+                <label for="updateApellido" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Apellido</label>
+                <input type="text" id="updateApellido" name="apellido" required class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all">
+            </div>
+            <div>
+                <label for="updateCorreo" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Correo</label>
+                <input type="email" id="updateCorreo" name="correo" required class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all">
             </div>
             <div>
                 <label for="updateDireccion" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Dirección</label>
@@ -192,6 +212,8 @@
     function ajustarDatosFormulario(btn) {
         document.getElementById('updateId').value = btn.getAttribute('data-id') || '';
         document.getElementById('updateNombre').value = btn.getAttribute('data-nombre') || '';
+        document.getElementById('updateApellido').value = btn.getAttribute('data-apellido') || '';
+        document.getElementById('updateCorreo').value = btn.getAttribute('data-correo') || '';
         document.getElementById('updateDireccion').value = btn.getAttribute('data-direccion') || '';
         document.getElementById('updateTelefono').value = btn.getAttribute('data-telefono') || '';
     }

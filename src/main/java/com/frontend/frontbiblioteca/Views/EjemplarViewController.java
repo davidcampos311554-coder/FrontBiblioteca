@@ -16,7 +16,14 @@ public class EjemplarViewController {
     @ResponseBody //Le dice a Spring que devuelva datos y no HTML
     public ResponseEntity<?> crearNuevoEjemplar(@RequestBody Ejemplar ejemplar) {
         try {
-            ejemplarFeingClient.crearNuevoEjemplar(ejemplar);
+            //Creamos valores predefinidos para enviar
+            Ejemplar ejemplarNuevo = Ejemplar.builder()
+                    .id(null)
+                    .ubicacion(ejemplar.getUbicacion())
+                    .estado(true) //Disponible la crear un ejemplar
+                    .libro(ejemplar.getLibro())
+                    .build();
+            ejemplarFeingClient.crearNuevoEjemplar(ejemplarNuevo);
             return ResponseEntity.ok().build();
         }
         catch (Exception ex) {

@@ -2,6 +2,7 @@ package com.frontend.frontbiblioteca.WebServiceClient;
 
 import com.frontend.frontbiblioteca.Model.Miembro;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,10 +12,10 @@ public interface MiembroFeingClient {
     List<Miembro> listarTodosMiembros();
 
     @PostMapping
-    Miembro  crearMiembro(@RequestBody Miembro miembro);
+    ResponseEntity<Miembro> crearMiembro(@RequestBody Miembro miembro);
 
     @PutMapping("/{id}")
-    Miembro  actualizarMiembro(@PathVariable String id, @RequestBody Miembro miembro);
+    ResponseEntity<Miembro> actualizarMiembro(@PathVariable String id, @RequestBody Miembro miembro);
 
     @DeleteMapping("/{id}")
     void eliminarMiembro(@PathVariable("id") String id);
