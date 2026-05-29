@@ -100,10 +100,22 @@ public class MiembroViewController {
     @GetMapping("/biblioteca/eliminarMiembro/{idMiembro}")
     public String cambiarEstadoMiembro(@PathVariable String idMiembro, Model model) {
         try {
-            miembroFeingClient.eliminarMiembro(idMiembro);
-            return "redirect:/biblioteca/miembros/listar";
+            ResponseEntity<Miembro> response = miembroFeingClient.eliminarMiembro(idMiembro);
+            if (response.getStatusCode().is2xxSuccessful()) {
+                return "redirect:/biblioteca/miembros/listar";
+            }
+            if (response.getStatusCode() == HttpStatus.SERVICE_UNAVAILABLE) {
+                model.addAttribute("errorMensaje", "El servidor de base de datos está fuera de servicio.");
+            } else {
+                model.addAttribute("errorMensaje", "No se pudo eliminar el libro seleccionado.");
+            }
         } catch (Exception e) {
-            model.addAttribute("errorMensaje", "El servicio de backend no está disponible o no se pudo eliminar.");
+            //Capturamos el mensaje de error para saber si es por prestamo activo o porque no se encontró
+            String mensaje = (e.getMessage() != null && e.getMessage().contains("prestamos activos"))
+                    ? "El miembro no puede ser eliminado porque tiene prestamos activos"
+                    : "No se pudo eliminar el miembro. Verifique el estado del servicio.";
+
+            model.addAttribute("errorMensaje", mensaje);
         }
 
         try {
