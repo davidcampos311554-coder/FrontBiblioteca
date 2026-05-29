@@ -57,13 +57,13 @@ public class LibroRestClient {
         }
     }
 
-    public ResponseEntity<Libro> eliminarLibro(String isbn) {
+    public ResponseEntity<String> eliminarLibro(String isbn) {
         try {
             //No es necesario envolver objeto en http porque la respuesta es noContent
-            return restTemplate.exchange(baseUrl + "/" + isbn, HttpMethod.DELETE, null, Libro.class);
+            return restTemplate.exchange(baseUrl + "/" + isbn, HttpMethod.DELETE, null, String.class);
         }
         catch (HttpStatusCodeException e){
-            return  ResponseEntity.status(e.getStatusCode()).build();
+            return  ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
         }
         catch (Exception e){
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();

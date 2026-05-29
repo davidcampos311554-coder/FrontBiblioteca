@@ -171,7 +171,7 @@ public class LibroViewController {
     @GetMapping("/biblioteca/eliminarLibro/{isbn}")
     public String eliminarLibro(@PathVariable String isbn, Model model) {
         try {
-            ResponseEntity<Libro> response = libroRestClient.eliminarLibro(isbn);
+            ResponseEntity<String> response = libroRestClient.eliminarLibro(isbn);
 
             if (response.getStatusCode().is2xxSuccessful()) {
                 return "redirect:/biblioteca/listar-libros";
@@ -179,11 +179,15 @@ public class LibroViewController {
 
             if (response.getStatusCode() == HttpStatus.SERVICE_UNAVAILABLE) {
                 model.addAttribute("errorMensaje", "El servidor de base de datos está fuera de servicio.");
-            } else {
-                model.addAttribute("errorMensaje", "No se pudo eliminar el libro seleccionado.");
             }
-        } catch (Exception e) {
-            model.addAttribute("errorMensaje", "El servicio de backend no está disponible en este momento.");
+            else if (response.getStatusCode() == HttpStatus.BAD_REQUEST)
+            {
+                model.addAttribute("errorMensaje", response.getBody());
+            }
+            else {
+                model.addAttribute("errorMensaje", "Ha ocurrido un error al eliminar el libro. Intente más tarde");
+            }
+        } catch (Exception ignored) {
         }
 
         model.addAttribute("listaTodosLibros", libroRestClient.listarLibros());
