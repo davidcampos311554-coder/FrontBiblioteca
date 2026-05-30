@@ -18,5 +18,5 @@ public interface MiembroFeingClient {
     ResponseEntity<Miembro> actualizarMiembro(@PathVariable String id, @RequestBody Miembro miembro);
 
     @DeleteMapping("/{id}")
-    ResponseEntity<Miembro> eliminarMiembro(@PathVariable("id") String id);
+    ResponseEntity<Miembro> eliminarMiembro(@PathVariable String id);
 }

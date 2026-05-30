@@ -95,7 +95,9 @@ public class LibroViewController {
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 // Armamos el objeto Escrito con los datos mínimos indispensables
                 Autor autorCascaron = Autor.builder().idAutor(idAutor).build();
-                Libro libroCascaron = Libro.builder().isbn(response.getBody().getIsbn()).build();
+                Libro libroCascaron = Libro.builder()
+                        .isbn(response.getBody().getIsbn())
+                        .build();
 
                 Escrito escritoNuevo = Escrito.builder()
                         .id(null)
