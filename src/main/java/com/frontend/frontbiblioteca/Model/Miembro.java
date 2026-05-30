@@ -16,4 +16,5 @@ public class Miembro {
     String telefono;
     String correo;
     String direccion;
+    boolean estado;
 }
